@@ -53,6 +53,12 @@ _WHATSAPP_JID_RE = re.compile(
     r"^\s*[\w-]+@(?:g\.us|s\.whatsapp\.net|lid|broadcast|newsletter)\s*$",
     re.IGNORECASE,
 )
+# Buzz channel IDs are UUIDs. Treat exact UUIDs as native targets rather than
+# trying directory-name resolution and then falling back to the home channel.
+_BUZZ_CHANNEL_RE = re.compile(
+    r"^\s*([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\s*$",
+    re.IGNORECASE,
+)
 # Email addresses — a valid email like "user@domain.com" should be treated as
 # an explicit target for the email platform, not fall through to channel-name
 # resolution which has no way to resolve a raw address.
@@ -594,6 +600,10 @@ def _parse_target_ref(platform_name: str, target_ref: str):
         # through to the _PHONE_PLATFORMS handler below.
         if _WHATSAPP_JID_RE.fullmatch(target_ref):
             return target_ref.strip(), None, True
+    if platform_name == "buzz":
+        match = _BUZZ_CHANNEL_RE.fullmatch(target_ref)
+        if match:
+            return match.group(1), None, True
     stripped_target = target_ref.strip()
     if platform_name == "signal" and stripped_target.startswith("group:"):
         group_id = stripped_target[len("group:"):].strip()
@@ -1395,7 +1405,12 @@ async def _send_to_platform(platform, pconfig, chat_id, message, thread_id=None,
             return result
         last_result = result
 
-    if warning and isinstance(last_result, dict) and last_result.get("success"):
+    if (
+        warning
+        and isinstance(last_result, dict)
+        and last_result.get("success")
+        and not last_result.get("media_delivered")
+    ):
         warnings = list(last_result.get("warnings", []))
         warnings.append(warning)
         last_result["warnings"] = warnings
