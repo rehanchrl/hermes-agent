@@ -895,6 +895,8 @@ class TestInboundAttachments:
         authorization,
     ):
         adapter = _make_adapter()
+        adapter._run_cli = AsyncMock(side_effect=AssertionError("authorization test invoked Buzz CLI"))
+        adapter._resolve_user_name = AsyncMock(return_value="Other")
         adapter._allowed_pubkeys = {OTHER_PUBKEY}
         if authorization is None:
             adapter.set_authorization_check(None)
@@ -935,6 +937,8 @@ class TestInboundAttachments:
     @pytest.mark.asyncio
     async def test_explicit_true_gateway_authority_caches_attachment(self):
         adapter = _make_adapter()
+        adapter._run_cli = AsyncMock(side_effect=AssertionError("authorization test invoked Buzz CLI"))
+        adapter._resolve_user_name = AsyncMock(return_value="Other")
         authorization_check = MagicMock(return_value=True)
         adapter.set_authorization_check(authorization_check)
         cached = CachedMedia(
@@ -985,6 +989,8 @@ class TestInboundAttachments:
         runner.pairing_store.is_approved.return_value = False
 
         adapter = _make_adapter()
+        adapter._run_cli = AsyncMock(side_effect=AssertionError("authorization test invoked Buzz CLI"))
+        adapter._resolve_user_name = AsyncMock(return_value="Other")
         adapter._allowed_pubkeys = {OTHER_PUBKEY}
         adapter.set_authorization_check(runner._make_adapter_auth_check(adapter.platform))
         adapter._cache_inbound_attachments = AsyncMock()
